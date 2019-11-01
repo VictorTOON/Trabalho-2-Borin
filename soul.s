@@ -133,7 +133,7 @@ SSA_id1:
     li t1, 116
     bgt a1, t1, SSA_angleInvalid # if a1 > 116 then SSA_angleInvalid
     
-    sb a1, 0(t0) # isso aqui guarda o valor dso angulo
+    sb a1, 0(t0) # isso aqui guarda o valor do angulo
 
     li a0, 0
     ret
@@ -145,7 +145,7 @@ SSA_id2:
     li t1, 90
     bgt a1, t1, SSA_angleInvalid # if a1 > 90 then SSA_angleInvalid
     
-    sb a1, 0(t0) # isso aqui guarda o valor dso angulo
+    sb a1, 0(t0) # isso aqui guarda o valor do angulo
 
     li a0, 0
     ret
@@ -157,7 +157,7 @@ SSA_id3:
     li t1, 156
     bgt a1, t1, SSA_angleInvalid # if a1 > 156 then SSA_angleInvalid
     
-    sb a1, 0(t0) # isso aqui guarda o valor dso angulo
+    sb a1, 0(t0) # isso aqui guarda o valor do angulo
 
     li a0, 0
     ret
@@ -172,7 +172,40 @@ SSA_angleInvalid:
 
 #------------------------------------------------------------------------------------------------------------------------#
 
+#parametros:
+#a0: id do motor a ser modificado. 
+#a1: torque do motor.
+#Retorno: 
+#a0: a0: -1, caso o id do motor seja inválido. 0, caso contrário. 
+#A chamada de sistema não deve verificar a validade dos valores de torque.
+set_engine_torque:
+    li t0, 0xFFFF001A
 
+    li t1, 0
+    beq a0, t1, SET_id0; # if a0 == t1 then SET_id0
+
+    li t1, 1
+    beq a0, t1, SET_id1; # if a0 == t1 then SET_id1
+    
+    j SET_idInvalid
+
+SET_id0:
+    sb a1, 0(t0) # isso aqui guarda o valor do torque
+
+    li a0, 0
+    ret
+
+SET_id1:
+
+    addi t0, t0, -2 # t0 = t0 - 2 #isso deve cair no endereço correto do motor
+    sb a1, 0(t0) # isso aqui guarda o valor do torque
+
+    li a0, 0
+    ret
+
+SET_idInvalid:
+    li a0, -1
+    ret
 
 #------------------------------------------------------------------------------------------------------------------------#
 
