@@ -105,7 +105,72 @@ mv  a0, t0 # a0 = t0
 ret
 
 #------------------------------------------------------------------------------------------------------------------------#
+#parametros:
+#a0: id do servo a ser modificado. 
+#a1: ângulo para o servo.
+#Retorno: 
+#a0: -1, caso o ângulo de um dos servos seja inválido (neste caso, a operação toda deve
+#ser cancelada e nenhum ângulo definido). -2, caso o id do servo seja inválido. Caso contrário, retorna 0.
+set_servo_angles:
+    li t0, 0xFFFF001F
+    sub t0, t0, a0 # t0 = t0 - a0 #isso deve cair no endereço correto do servo
 
+    li t1, 1
+    beq a0, t1, SSA_id1; # if a0 == t1 then SSA_id1
+
+    li t1, 2
+    beq a0, t1, SSA_id2; # if a0 == t1 then SSA_id2
+
+    li t1, 3
+    beq a0, t1, SSA_id3; # if a0 == t1 then SSA_id3
+    
+    j SSA_idInvalid
+
+SSA_id1:
+    li t1, 16
+    blt a1, t1, SSA_angleInvalid # if a1 < 16 then SSA_angleInvalid
+
+    li t1, 116
+    bgt a1, t1, SSA_angleInvalid # if a1 > 116 then SSA_angleInvalid
+    
+    sb a1, 0(t0) # isso aqui guarda o valor dso angulo
+
+    li a0, 0
+    ret
+
+SSA_id2:
+    li t1, 52
+    blt a1, t1, SSA_angleInvalid # if a1 < 52 then SSA_angleInvalid
+
+    li t1, 90
+    bgt a1, t1, SSA_angleInvalid # if a1 > 90 then SSA_angleInvalid
+    
+    sb a1, 0(t0) # isso aqui guarda o valor dso angulo
+
+    li a0, 0
+    ret
+
+SSA_id3:
+    li t1, 0
+    blt a1, t1, SSA_angleInvalid # if a1 < 0 then SSA_angleInvalid
+
+    li t1, 156
+    bgt a1, t1, SSA_angleInvalid # if a1 > 156 then SSA_angleInvalid
+    
+    sb a1, 0(t0) # isso aqui guarda o valor dso angulo
+
+    li a0, 0
+    ret
+
+SSA_idInvalid:
+    li a0, -2
+    ret
+
+SSA_angleInvalid:    
+    li a0, -1
+    ret
+
+#------------------------------------------------------------------------------------------------------------------------#
 
 
 
