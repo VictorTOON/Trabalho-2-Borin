@@ -9,15 +9,39 @@
 .globl _start
 #O que rola aqui é que precisamo colocar as funcoes no globl pra elas serem globais
 
-
+#------------------------------------------------------------------------------------------------------------------------#
+#Configurar o tratamento de interrupções;
 #Configurar o GPT para gerar interrupção após 1 ms;
 #Configurar o torque dos dois motores para zero;
 #Configurar as articulações da cabeça do Uóli para a posição natural (Base = 31, Mid = 80, Top = 78);
-#Configurar o tratamento de interrupções;
 _start:
+#Configurar o tratador de interrupções
+    la t0, tratador_interrupcoes
+    csrw mtvec, t0
+#Configurar o torque dos dois motores para zero;
+    la t0, 0xFFFF0018
+    sh zero, 0(t0) #coloco o motor 2 pra zero
+    
+    la t0, 0xFFFF001A
+    sh zero, 0(t0) #coloco o motor 1 pra zero
+#Configurar a cabeca do uóli
+    la t0, 0xFFFF001C
+    li t1, 78
+    sb t1, 0(t0) # carrego 78 no servo top
+
+    la t0, 0xFFFF001D
+    li t1, 80
+    sb t1, 0(t0) # carrego 80 no servo mid
+
+    la t0, 0xFFFF001E
+    li t1, 31
+    sb t1, 0(t0) # carrego 31 no servo bot
 #GPT:
+    la t0, 0xFFFF0100
+    li t1, 1 #carrego o 1
+    sw t1, 0(t0) #salvo no endereço de memoria
 
-
+#------------------------------------------------------------------------------------------------------------------------#
 #Parametros: nenhum
 #Retorno: a0: Valor obtido na leitura do sensor; -1 caso nenhum objeto tenha sido detectado a menos de 600 centímetros.
 read_ultrasonic_sensor:
@@ -25,9 +49,21 @@ la t0, 0xFFFF0020
 sw zero, 0(t0) # 
 #TODO: interromper até FFFF0020 ter o valor 1 e pegar os objetos do sensor
 
+#------------------------------------------------------------------------------------------------------------------------#
+
+
+
+
+
+
+
+
+#------------------------------------------------------------------------------------------------------------------------#
+
+tratador_interrupcoes:
+#TODO:
 
 delay:
-    
     #empilha
     addi sp, sp, -4
     sw ra, 0(sp)
@@ -71,6 +107,6 @@ time_now:
   div t2, t2, t0 #t2 em milisegundos
   add a0, t2, t1
   ret
-
+#------------------------------------------------------------------------------------------------------------------------#
 buffer_timeval: .skip 12
 buffer_timerzone: .skip 12
