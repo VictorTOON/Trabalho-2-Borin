@@ -209,6 +209,40 @@ SET_idInvalid:
 
 #------------------------------------------------------------------------------------------------------------------------#
 
+#parametros:
+#a0: Endereço do registro (com três valores inteiros) para armazenar as coordenadas (x, y, z);
+read_gps:
+    #ler X,Y,Z:
+    la t0, 0xFFFF0004
+    sw zero, 0(t0) # 
+
+    RGPS_While:   
+        #empilha
+        addi sp, sp, -4
+        sw ra, 0(sp)
+
+        jal delay
+
+        #desempilha
+        lw ra, 0(sp)
+        addi sp, sp, 4
+
+        la t0, 0xFFFF0020
+        li t1, 1
+
+        bne t0, t1, RGPS_While # if t0 != t1 then RGPS_While
+
+    la t1, 0xFFFF0008
+    sw t1, 0(a0)
+
+    la t1, 0xFFFF000C
+    sw t1, 4(a0)
+
+    la t1, 0xFFFF0010
+    sw t1, 8(a0)
+
+#------------------------------------------------------------------------------------------------------------------------#
+
 tratador_interrupcoes:
 #TODO:
 
