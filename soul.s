@@ -8,6 +8,7 @@
 .globl write
 .globl _start
 #O que rola aqui é que precisamo colocar as funcoes no globl pra elas serem globais
+#TODO: REMOVER OS CODIGOS COMENTADOS
 
 #------------------------------------------------------------------------------------------------------------------------#
 #Configurar o tratamento de interrupções;
@@ -38,7 +39,7 @@ _start:
     sb t1, 0(t0) # carrego 31 no servo bot
 #GPT:
     la t0, 0xFFFF0100
-    li t1, 1 #carrego o 1
+    li t1, 100 #carrego o 100
     sw t1, 0(t0) #salvo no endereço de memoria
 
 #------------------------------------------------------------------------------------------------------------------------#
@@ -77,15 +78,15 @@ read_ultrasonic_sensor:
 la t0, 0xFFFF0020
 sw zero, 0(t0) # 
 RUS_While:
-    #empilha
-    addi sp, sp, -4
-    sw ra, 0(sp)
+    # #empilha
+    # addi sp, sp, -4
+    # sw ra, 0(sp)
 
-    jal delay
+    # jal delay
 
-    #desempilha
-    lw ra, 0(sp)
-    addi sp, sp, 4
+    # #desempilha
+    # lw ra, 0(sp)
+    # addi sp, sp, 4
 
     la t0, 0xFFFF0020
     li t1, 1
@@ -212,20 +213,20 @@ SET_idInvalid:
 #parametros:
 #a0: Endereço do registro (com três valores inteiros) para armazenar as coordenadas (x, y, z);
 read_gps:
-    #ler X,Y,Z:
+    #ler X,Y,Z e angulo:
     la t0, 0xFFFF0004
     sw zero, 0(t0) # 
 
     RGPS_While:   
-        #empilha
-        addi sp, sp, -4
-        sw ra, 0(sp)
+        # #empilha
+        # addi sp, sp, -4
+        # sw ra, 0(sp)
 
-        jal delay
+        # jal delay
 
-        #desempilha
-        lw ra, 0(sp)
-        addi sp, sp, 4
+        # #desempilha
+        # lw ra, 0(sp)
+        # addi sp, sp, 4
 
         la t0, 0xFFFF0020
         li t1, 1
@@ -241,63 +242,247 @@ read_gps:
     la t1, 0xFFFF0010
     sw t1, 8(a0)
 
+    ret
 #------------------------------------------------------------------------------------------------------------------------#
+#parametros:
+#a0: Endereço do registro (com três valores inteiros) para armazenar os ângulos de Euler (x, y, z);
+read_gyroscope:
+    #ler X,Y,Z e angulo:
+    la t0, 0xFFFF0004
+    sw zero, 0(t0) # 
 
-tratador_interrupcoes:
-#TODO:
+    RGYRO_While:   
+        # #empilha
+        # addi sp, sp, -4
+        # sw ra, 0(sp)
 
-delay:
-    #empilha
-    addi sp, sp, -12
-    sw ra, 0(sp)
-    sw a0, 4(sp)
-    sw a1, 8(sp)
+        # jal delay
 
-    jal time_now
+        # #desempilha
+        # lw ra, 0(sp)
+        # addi sp, sp, 4
 
-    #desempilha
-    lw ra, 0(sp)
-    lw a0, 4(sp)
-    lw a1, 8(sp)
-    addi sp, sp, 12
+        la t0, 0xFFFF0020
+        li t1, 1
 
-    addi a2, a0, 0; # a2 = a0 + 0 #tempo de referencia
-    li a1, 0 #tempo_atual=0
-    li a3, 1
-    while:
-        #empilha
-        addi sp, sp, -12
-        sw ra, 0(sp)
-        sw a0, 4(sp)
-        sw a1, 8(sp)
+        bne t0, t1, RGYRO_While # if t0 != t1 then RGYRO_While
 
-        jal time_now
+    #mascara
+    la t0, 0xFFFF0014
+    lw t1, 0(t0) #
 
-        #desempilha
-        lw ra, 0(sp)
-        lw a0, 4(sp)
-        lw a1, 8(sp)
-        addi sp, sp, 12
+    andi t2, t1, 0x3FF00000
+    srli t2, t2, 20
+    sw t2, 0(a0) # coloca o X
 
-        addi a1, a0, 0; # a1 = a0 + 0
-        sub t0, a1, a2 # t0 = a1 - a2
-        blt t0, a3, while # if t0 < 1 then target
+    andi t2, t1, 0xFFC00
+    srli t2, t2, 10
+    sw t2, 4(a0) # coloca o Y
+
+    andi t2, t1, 0x3FF
+    sw t2, 8(a0) # coloca o Z
+    
+    ret
+#------------------------------------------------------------------------------------------------------------------------#
+#retorno: a0:tempo do sistema, em milissegundos
+get_time:
+    la t0, internal_clock
+    lw a0, 0(t0)
+    ret
+#------------------------------------------------------------------------------------------------------------------------#
+#parâmetro: a0: tempo do sistema, em milissegundos
+set_time:
+    la t0, internal_clock
+    sw a0, 0(t0)
+    ret
+#------------------------------------------------------------------------------------------------------------------------#
+#parametros:a0: Descritor do arquivo 
+#a1: Endereço de memória do buffer a ser escrito. 
+#a2: Número de bytes a serem escritos.
+#retorno: a0: Número de bytes efetivamente escritos.
+write:
+    li a0, 0
+    write_for:
+        bge a0, a2, write_continue
+        #imprime o role
+        la t0, 0xFFFF0109
+        lw t1, 0(a1)
+        sw t1, 0(t0) # 
+
+        la t0, 0xFFFF0108
+        li t1, 1
+        sw t1, 0(t0)
+        
+        loop_UART_Delay:
+
+
+            la t0, 0xFFFF0108
+            lw t1, 0(t0)
+            bnez t1, loop_UART_Delay #Brench not equals zero
+
+        addi a0, a0, 1; # a0 = a0 + 1
+        addi a1, a1, 1; # a1 = a1 + 1
+        j write_for
+
+    write_continue:
 
     ret
+#------------------------------------------------------------------------------------------------------------------------#
+tratador_interrupcoes:
+    csrrw a6, mscratch, a6
+    #empilha
+    sw ra, 0(a6)
+    sw a1, 4(a6)
+    sw a2, 8(a6)
+    sw a3, 12(a6)
+    sw a4, 16(a6)
+    sw a5, 20(a6)
+    sw a0, 24(a6)
+    sw t0, 28(a6)
+    sw t1, 32(a6)
+    sw t2, 36(a6)
+    sw t3, 40(a6)
+    sw t4, 44(a6)
+    sw t5, 48(a6)
+    sw t6, 52(a6)
 
-time_now:
-  la a0, buffer_timeval
-  la a1, buffer_timerzone
-  li a7, 169 # chamada de sistema gettimeofday
-  ecall
-  la a0, buffer_timeval
-  lw t1, 0(a0) # tempo em segundos
-  lw t2, 8(a0) # fração do tempo em microssegundos
-  li t0, 1000
-  mul t1, t1, t0
-  div t2, t2, t0 #t2 em milisegundos
-  add a0, t2, t1
-  ret
+    csrr a1, mcause
+    li a2, 0x8000000B
+    bne a1, a2, not_GPT; # if a1 == a2 then not_GPT
+        la a1, internal_clock
+        lw a2, 0(a1) #
+        addi a2, a2, 100; # a2 = a2 + 100
+        sw a2, 0(a1) # 
+
+        la a1, 0xFFFF0100 #
+        li a2, 100 # a2 = 100
+        sw a2, 0(a1)
+        
+        la a1, 0xFFFF0104
+        sb zero, 0(a1)
+        
+        #desempilha
+        lw ra, 0(a6)
+        lw a1, 4(a6)
+        lw a2, 8(a6)
+        lw a3, 12(a6)
+        lw a4, 16(a6)
+        lw a5, 20(a6)
+        lw a0, 24(a6)
+        lw t0, 28(a6)
+        lw t1, 32(a6)
+        lw t2, 36(a6)
+        lw t3, 40(a6)
+        lw t4, 44(a6)
+        lw t5, 48(a6)
+        lw t6, 52(a6)
+        csrrw a6, mscratch, a6
+        
+        mret
+    not_GPT:
+    
+    li a1, 64
+    bne a7, a1, not_64; # if t0 == t1 then not_64
+    #desempilha
+    lw a0, 24(a6)
+    lw a1, 4(a6)#pego de volta os parametros da funcao
+    lw a2, 8(a6)
+    jal write  # jump to write and save position to ra
+    #empilha dnv
+    sw a0, 24(a6)
+    sw a1, 4(a6)#empilho de volta
+    sw a2, 8(a6)
+    j retorno_interrup
+    not_64:
+    
+    li a1, 22
+    bne a7, a1, not_22; # if t0 == t1 then not_22
+    #desempilha
+    lw a0, 24(a6)
+    jal set_time  # jump to set_time and save position to ra
+    j retorno_interrup
+    not_22:
+
+    li a1, 21
+    bne a7, a1, not_21; # if t0 == t1 then not_21
+    jal get_time  # jump to get_time and save position to ra
+    #empilha dnv
+    sw a0, 24(a6)
+    j retorno_interrup
+    not_21:
+
+    li a1, 20
+    bne a7, a1, not_20; # if t0 == t1 then not_20
+    #desempilha
+    lw a0, 24(a6)
+    jal read_gyroscope  # jump to read_gyroscope and save position to ra
+    j retorno_interrup
+    not_20:
+
+    li a1, 19
+    bne a7, a1, not_19; # if t0 == t1 then not_19
+    #desempilha
+    lw a0, 24(a6)
+    jal read_gps  # jump to read_gps and save position to ra
+    j retorno_interrup
+    not_19:
+
+    li a1, 18
+    bne a7, a1, not_18; # if t0 == t1 then not_18
+    #desempilha
+    lw a0, 24(a6)
+    lw a1, 4(a6)#pego de volta os parametros da funcao
+    jal set_engine_torque  # jump set_engine_torque and save position to ra
+    #empilha dnv
+    sw a0, 24(a6)
+    j retorno_interrup
+    not_18:
+
+    li a1, 17
+    bne a7, a1, not_17; # if t0 == t1 then not_17
+    #desempilha
+    lw a0, 24(a6)
+    lw a1, 4(a6)#pego de volta os parametros da funcao
+    jal set_servo_angles  # jump set_servo_angles and save position to ra
+    #empilha dnv
+    sw a0, 24(a6)
+    j retorno_interrup
+    not_17:
+
+    li a1, 16
+    bne a7, a1, not_16; # if t0 == t1 then not_16
+    jal read_ultrasonic_sensor  # jump read_ultrasonic_sensor and save position to ra
+    #empilha dnv
+    sw a0, 24(a6)
+    j retorno_interrup
+    not_16:
+
+    retorno_interrup:
+
+        csrr a1, mepc
+        addi a1, a1, 4
+        csrs mepc, a1
+
+        #desempilha
+        lw ra, 0(a6)
+        lw a1, 4(a6)
+        lw a2, 8(a6)
+        lw a3, 12(a6)
+        lw a4, 16(a6)
+        lw a5, 20(a6)
+        lw a0, 24(a6)
+        lw t0, 28(a6)
+        lw t1, 32(a6)
+        lw t2, 36(a6)
+        lw t3, 40(a6)
+        lw t4, 44(a6)
+        lw t5, 48(a6)
+        lw t6, 52(a6)
+        csrrw a6, mscratch, a6
+
+        mret
+
 #------------------------------------------------------------------------------------------------------------------------#
 buffer_timeval: .skip 12
 buffer_timerzone: .skip 12
+internal_clock: .word 0
