@@ -16,6 +16,9 @@
 #Configurar o torque dos dois motores para zero;
 #Configurar as articulações da cabeça do Uóli para a posição natural (Base = 31, Mid = 80, Top = 78);
 _start:
+#iniciando o clock interno
+    la t0, internal_clock
+    sw zero, 0(t0)
 #Configurar o tratador de interrupções
     la t0, tratador_interrupcoes
     csrw mtvec, t0
@@ -39,17 +42,9 @@ _start:
     sb t1, 0(t0) # carrego 31 no servo bot
 #GPT:
     la t0, 0xFFFF0100
-    li t1, 100 #carrego o 100
+    li t1, 0 #carrego o 100 #TODO: VOLTAR PARA 100
     sw t1, 0(t0) #salvo no endereço de memoria
-    
-    j aplicacao_de_controle
 
-#------------------------------------------------------------------------------------------------------------------------#
-#Habilitar interrupções;
-#Configurar a pilha do usuário e do sistema;
-#Mudar para o modo usuário;
-#Desviar o fluxo para a função main do programa do usuário;
-aplicacao_de_controle:
 #Habilitando interrupções globais
     csrr t0, mstatus #Bit 7
     ori t0, t0, 0x80
@@ -61,18 +56,22 @@ aplicacao_de_controle:
     or t0, t0, t1
     csrw mie, t0
 #Ajustando o mscratch
-    la t0, reg_buffer
+    li t0, 0x3fffffe
     csrw mscratch, t0
+    li sp, 0x7fffffc
 #Mudar pro modo usuário
     csrr t0, mstatus #seta os bits 11 e 12
     li t1, ~0x1800
     and t0, t0, t1 #isso aqui vai ter o mstatus antigo com o 11 e o 12 sendo 0
     csrw mstatus, t0 #guardo de volta
 
-    la t0, main
+    la t0, user
     csrw mepc, t0
 
     mret #me retorna pra func do usuario, que seria a main
+
+user:
+    call main
 
 #------------------------------------------------------------------------------------------------------------------------#
 #Parametros: nenhum
@@ -290,7 +289,7 @@ read_gyroscope:
     ret
 #------------------------------------------------------------------------------------------------------------------------#
 #retorno: a0:tempo do sistema, em milissegundos
-get_current_time :
+get_current_time:
     la t0, internal_clock
     lw a0, 0(t0)
     ret
@@ -306,31 +305,30 @@ set_current_time:
 #a2: Número de bytes a serem escritos.
 #retorno: a0: Número de bytes efetivamente escritos.
 write:
-    li a0, 0
+    li t2, 0
+    mv t3, a1
     write_for:
-        bge a0, a2, write_continue
+        bge t2, a2, write_continue
         #imprime o role
         la t0, 0xFFFF0109
-        lw t1, 0(a1)
-        sw t1, 0(t0) #
+        lb t1, 0(t3)
+        sb t1, 0(t0)
 
         la t0, 0xFFFF0108
         li t1, 1
-        sw t1, 0(t0)
+        sb t1, 0(t0)
 
         loop_UART_Delay:
-
-
             la t0, 0xFFFF0108
-            lw t1, 0(t0)
+            lb t1, 0(t0)
             bnez t1, loop_UART_Delay #Brench not equals zero
 
-        addi a0, a0, 1; # a0 = a0 + 1
-        addi a1, a1, 1; # a1 = a1 + 1
+        addi t2, t2, 1; # t2 = t2 + 1
+        addi t3, t3, 1; # t3 = t3 + 1
         j write_for
 
     write_continue:
-
+    mv a0, t2
     ret
 #------------------------------------------------------------------------------------------------------------------------#
 tratador_interrupcoes:
@@ -489,7 +487,4 @@ tratador_interrupcoes:
 
 .align 4
 #------------------------------------------------------------------------------------------------------------------------#
-buffer_timeval: .skip 12
-buffer_timerzone: .skip 12
-internal_clock: .word 0
-reg_buffer: .skip 4
+internal_clock: .skip 4
