@@ -1,9 +1,9 @@
 # .globl read_ultrasonic_sensor
-# .globl set_servo_angles 
+# .globl set_servo_angles
 # .globl set_engine
-# .globl read_gps 
-# .globl read_gyroscope 
-# .globl get_current_time 
+# .globl read_gps
+# .globl read_gyroscope
+# .globl get_current_time
 # .globl set_current_time
 # .globl write
 .globl _start
@@ -41,6 +41,8 @@ _start:
     la t0, 0xFFFF0100
     li t1, 100 #carrego o 100
     sw t1, 0(t0) #salvo no endereço de memoria
+    
+    j aplicacao_de_controle
 
 #------------------------------------------------------------------------------------------------------------------------#
 #Habilitar interrupções;
@@ -55,11 +57,12 @@ aplicacao_de_controle:
 
 #Habilitando interrupções externas
     csrr t0, mie #Bit 11
-    ori t0, t0, 0x800
+    li t1, 0x800
+    or t0, t0, t1
     csrw mie, t0
 #Ajustando o mscratch
     la t0, reg_buffer
-    csrw mscratch, t0 
+    csrw mscratch, t0
 #Mudar pro modo usuário
     csrr t0, mstatus #seta os bits 11 e 12
     li t1, ~0x1800
@@ -76,7 +79,7 @@ aplicacao_de_controle:
 #Retorno: a0: Valor obtido na leitura do sensor; -1 caso nenhum objeto tenha sido detectado a menos de 600 centímetros.
 read_ultrasonic_sensor:
 la t0, 0xFFFF0020
-sw zero, 0(t0) # 
+sw zero, 0(t0) #
 RUS_While:
     # #empilha
     # addi sp, sp, -4
@@ -107,9 +110,9 @@ ret
 
 #------------------------------------------------------------------------------------------------------------------------#
 #parametros:
-#a0: id do servo a ser modificado. 
+#a0: id do servo a ser modificado.
 #a1: ângulo para o servo.
-#Retorno: 
+#Retorno:
 #a0: -1, caso o ângulo de um dos servos seja inválido (neste caso, a operação toda deve
 #ser cancelada e nenhum ângulo definido). -2, caso o id do servo seja inválido. Caso contrário, retorna 0.
 set_servo_angles:
@@ -124,7 +127,7 @@ set_servo_angles:
 
     li t1, 3
     beq a0, t1, SSA_id3; # if a0 == t1 then SSA_id3
-    
+
     j SSA_idInvalid
 
 SSA_id1:
@@ -133,7 +136,7 @@ SSA_id1:
 
     li t1, 116
     bgt a1, t1, SSA_angleInvalid # if a1 > 116 then SSA_angleInvalid
-    
+
     sb a1, 0(t0) # isso aqui guarda o valor do angulo
 
     li a0, 0
@@ -145,7 +148,7 @@ SSA_id2:
 
     li t1, 90
     bgt a1, t1, SSA_angleInvalid # if a1 > 90 then SSA_angleInvalid
-    
+
     sb a1, 0(t0) # isso aqui guarda o valor do angulo
 
     li a0, 0
@@ -157,7 +160,7 @@ SSA_id3:
 
     li t1, 156
     bgt a1, t1, SSA_angleInvalid # if a1 > 156 then SSA_angleInvalid
-    
+
     sb a1, 0(t0) # isso aqui guarda o valor do angulo
 
     li a0, 0
@@ -167,17 +170,17 @@ SSA_idInvalid:
     li a0, -2
     ret
 
-SSA_angleInvalid:    
+SSA_angleInvalid:
     li a0, -1
     ret
 
 #------------------------------------------------------------------------------------------------------------------------#
 
 #parametros:
-#a0: id do motor a ser modificado. 
+#a0: id do motor a ser modificado.
 #a1: torque do motor.
-#Retorno: 
-#a0: a0: -1, caso o id do motor seja inválido. 0, caso contrário. 
+#Retorno:
+#a0: a0: -1, caso o id do motor seja inválido. 0, caso contrário.
 #A chamada de sistema não deve verificar a validade dos valores de torque.
 set_engine:
     li t0, 0xFFFF001A
@@ -187,7 +190,7 @@ set_engine:
 
     li t1, 1
     beq a0, t1, SET_id1; # if a0 == t1 then SET_id1
-    
+
     j SET_idInvalid
 
 SET_id0:
@@ -215,9 +218,9 @@ SET_idInvalid:
 read_gps:
     #ler X,Y,Z e angulo:
     la t0, 0xFFFF0004
-    sw zero, 0(t0) # 
+    sw zero, 0(t0) #
 
-    RGPS_While:   
+    RGPS_While:
         # #empilha
         # addi sp, sp, -4
         # sw ra, 0(sp)
@@ -249,9 +252,9 @@ read_gps:
 read_gyroscope:
     #ler X,Y,Z e angulo:
     la t0, 0xFFFF0004
-    sw zero, 0(t0) # 
+    sw zero, 0(t0) #
 
-    RGYRO_While:   
+    RGYRO_While:
         # #empilha
         # addi sp, sp, -4
         # sw ra, 0(sp)
@@ -271,17 +274,19 @@ read_gyroscope:
     la t0, 0xFFFF0014
     lw t1, 0(t0) #
 
-    andi t2, t1, 0x3FF00000
+    li t2, 0x3FF00000
+    and t2, t1, t2
     srli t2, t2, 20
     sw t2, 0(a0) # coloca o X
 
-    andi t2, t1, 0xFFC00
+    li t2, 0xFFC00
+    and t2, t1, t2
     srli t2, t2, 10
     sw t2, 4(a0) # coloca o Y
 
     andi t2, t1, 0x3FF
     sw t2, 8(a0) # coloca o Z
-    
+
     ret
 #------------------------------------------------------------------------------------------------------------------------#
 #retorno: a0:tempo do sistema, em milissegundos
@@ -296,8 +301,8 @@ set_current_time:
     sw a0, 0(t0)
     ret
 #------------------------------------------------------------------------------------------------------------------------#
-#parametros:a0: Descritor do arquivo 
-#a1: Endereço de memória do buffer a ser escrito. 
+#parametros:a0: Descritor do arquivo
+#a1: Endereço de memória do buffer a ser escrito.
 #a2: Número de bytes a serem escritos.
 #retorno: a0: Número de bytes efetivamente escritos.
 write:
@@ -307,12 +312,12 @@ write:
         #imprime o role
         la t0, 0xFFFF0109
         lw t1, 0(a1)
-        sw t1, 0(t0) # 
+        sw t1, 0(t0) #
 
         la t0, 0xFFFF0108
         li t1, 1
         sw t1, 0(t0)
-        
+
         loop_UART_Delay:
 
 
@@ -352,15 +357,15 @@ tratador_interrupcoes:
         la a1, internal_clock
         lw a2, 0(a1) #
         addi a2, a2, 100; # a2 = a2 + 100
-        sw a2, 0(a1) # 
+        sw a2, 0(a1) #
 
         la a1, 0xFFFF0100 #
         li a2, 100 # a2 = 100
         sw a2, 0(a1)
-        
+
         la a1, 0xFFFF0104
         sb zero, 0(a1)
-        
+
         #desempilha
         lw ra, 0(a6)
         lw a1, 4(a6)
@@ -377,10 +382,10 @@ tratador_interrupcoes:
         lw t5, 48(a6)
         lw t6, 52(a6)
         csrrw a6, mscratch, a6
-        
+
         mret
     not_GPT:
-    
+
     li a1, 64
     bne a7, a1, not_64; # if t0 == t1 then not_64
     #desempilha
@@ -394,7 +399,7 @@ tratador_interrupcoes:
     sw a2, 8(a6)
     j retorno_interrup
     not_64:
-    
+
     li a1, 22
     bne a7, a1, not_22; # if t0 == t1 then not_22
     #desempilha
@@ -482,7 +487,9 @@ tratador_interrupcoes:
 
         mret
 
+.align 4
 #------------------------------------------------------------------------------------------------------------------------#
 buffer_timeval: .skip 12
 buffer_timerzone: .skip 12
 internal_clock: .word 0
+reg_buffer: .skip 4

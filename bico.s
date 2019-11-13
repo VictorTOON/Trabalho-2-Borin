@@ -9,9 +9,9 @@
 .globl puts
 
 
-# /* 
+# /*
 #  * Sets both engines torque. The torque value must be between -100 and 100.
-#  * Parameter: 
+#  * Parameter:
 #  *   engine_1: Engine 1 torque
 #  *   engine_2: Engine 2 torque
 #  * Returns:
@@ -28,7 +28,7 @@ set_torque:
 
     blt t0, t3, STError # if t0 < t1 then STError
     bgt t0, t2, STError # if t0 > t1 then STError
-    
+
     blt t1, t3, STError # if t0 < t1 then STError
     bgt t1, t2, STError # if t0 > t1 then STError
 
@@ -36,7 +36,7 @@ set_torque:
     mv a1, t0 # a1 = t0 coloco o torque daquela engine
     li a7, 18 #codigo da ecall
     ecall
-    
+
     li a0, 1 # a0 = 1
     mv a1, t1 # a1 = t1 coloco o torque daquela engine
     li a7, 18 #codigo da ecall
@@ -50,10 +50,10 @@ set_torque:
         li a0, -1
         ret
 
-# /* 
+# /*
 #  * Sets engine torque. Engine ID 0/1 identifies the left/right engine.
 #  * The torque value must be between -100 and 100.
-#  * Parameter: 
+#  * Parameter:
 #  *   engine_id: Engine ID
 #  *   torque: Engine torque
 #  * Returns:
@@ -78,12 +78,12 @@ set_engine_torque:
 
         li a0, -1
         ret
-# /* 
-#  * Sets the angle of three Servo motors that control the robot head. 
+# /*
+#  * Sets the angle of three Servo motors that control the robot head.
 #  *   Servo ID 0/1/2 identifies the Base/Mid/Top servos.
-#  * Parameter: 
-#  *   servo_id: Servo ID 
-#  *   angle: Servo Angle 
+#  * Parameter:
+#  *   servo_id: Servo ID
+#  *   angle: Servo Angle
 #  * Returns:
 #  *   -1 in case the servo id is invalid
 #  *   -2 in case the servo angle is invalid
@@ -95,15 +95,17 @@ set_head_servo:
     ecall
 
     #como os retornos estão trocados em relação ao soul, invertemos caso necessario
-    beq a0, -1, SHSError_angle
-    beq a0, -2, SHSError_id
+    li t0, -1
+    beq a0, t0, SHSError_angle
+    li t0, -2
+    beq a0, t0, SHSError_id
 
     ret
 
     SHSError_angle:
         li a0, -2
         ret
-    
+
     SHSError_id:
         li a0, -1
         ret
@@ -112,9 +114,9 @@ set_head_servo:
 # /* Sensors                                                    */
 # /**************************************************************/
 
-# /* 
+# /*
 #  * Reads distance from ultrasonic sensor.
-#  * Parameter: 
+#  * Parameter:
 #  *   none
 #  * Returns:
 #  *   distance of nearest object within the detection range, in centimeters.
@@ -125,9 +127,9 @@ get_us_distance:
     ecall
 
     ret
-# /* 
+# /*
 #  * Reads current global position using the GPS device.
-#  * Parameter: 
+#  * Parameter:
 #  *   pos: pointer to structure to be filled with the GPS coordinates.
 #  * Returns:
 #  *   void
@@ -139,9 +141,9 @@ get_current_GPS_position:
 
     ret
 
-# /* 
+# /*
 #  * Reads global rotation from the gyroscope device .
-#  * Parameter: 
+#  * Parameter:
 #  *   pos: pointer to structure to be filled with the Euler angles indicated by the gyroscope.
 #  * Returns:
 #  *   void
@@ -156,8 +158,8 @@ get_gyro_angles:
 # /* Timer                                                      */
 # /**************************************************************/
 
-# /* 
-#  * Reads the system time. 
+# /*
+#  * Reads the system time.
 #  * Parameter:
 #  *   none
 #  * Returns:
@@ -169,9 +171,9 @@ get_time:
     ecall
 
     ret
-# /* 
+# /*
 #  * Sets the system time.
-#  * Parameter: 
+#  * Parameter:
 #  *   t: the new system time.
 #  * Returns:
 #  *   void
@@ -187,8 +189,8 @@ set_time:
 # /* UART                                                       */
 # /**************************************************************/
 
-# /* 
-#  * Writes a string to the UART. Uses the syscall write with file 
+# /*
+#  * Writes a string to the UART. Uses the syscall write with file
 #  * descriptor 1 to instruct the SOUL to write the string to the UART.
 #  * Parameter:
 #  *   * s: pointer to the string.
@@ -216,4 +218,3 @@ puts:
     ecall
 
     ret
-
