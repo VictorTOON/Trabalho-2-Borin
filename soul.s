@@ -1,11 +1,11 @@
-.globl read_ultrasonic_sensor
-.globl set_servo_angles 
-.globl set_engine_torque 
-.globl read_gps 
-.globl read_gyroscope 
-.globl get_time 
-.globl set_time
-.globl write
+# .globl read_ultrasonic_sensor
+# .globl set_servo_angles 
+# .globl set_engine
+# .globl read_gps 
+# .globl read_gyroscope 
+# .globl get_current_time 
+# .globl set_current_time
+# .globl write
 .globl _start
 #O que rola aqui é que precisamo colocar as funcoes no globl pra elas serem globais
 #TODO: REMOVER OS CODIGOS COMENTADOS
@@ -179,7 +179,7 @@ SSA_angleInvalid:
 #Retorno: 
 #a0: a0: -1, caso o id do motor seja inválido. 0, caso contrário. 
 #A chamada de sistema não deve verificar a validade dos valores de torque.
-set_engine_torque:
+set_engine:
     li t0, 0xFFFF001A
 
     li t1, 0
@@ -191,7 +191,7 @@ set_engine_torque:
     j SET_idInvalid
 
 SET_id0:
-    sb a1, 0(t0) # isso aqui guarda o valor do torque
+    sh a1, 0(t0) # isso aqui guarda o valor do torque
 
     li a0, 0
     ret
@@ -199,7 +199,7 @@ SET_id0:
 SET_id1:
 
     addi t0, t0, -2 # t0 = t0 - 2 #isso deve cair no endereço correto do motor
-    sb a1, 0(t0) # isso aqui guarda o valor do torque
+    sh a1, 0(t0) # isso aqui guarda o valor do torque
 
     li a0, 0
     ret
@@ -285,13 +285,13 @@ read_gyroscope:
     ret
 #------------------------------------------------------------------------------------------------------------------------#
 #retorno: a0:tempo do sistema, em milissegundos
-get_time:
+get_current_time :
     la t0, internal_clock
     lw a0, 0(t0)
     ret
 #------------------------------------------------------------------------------------------------------------------------#
 #parâmetro: a0: tempo do sistema, em milissegundos
-set_time:
+set_current_time:
     la t0, internal_clock
     sw a0, 0(t0)
     ret
@@ -399,13 +399,13 @@ tratador_interrupcoes:
     bne a7, a1, not_22; # if t0 == t1 then not_22
     #desempilha
     lw a0, 24(a6)
-    jal set_time  # jump to set_time and save position to ra
+    jal set_current_time  # jump to set_current_time and save position to ra
     j retorno_interrup
     not_22:
 
     li a1, 21
     bne a7, a1, not_21; # if t0 == t1 then not_21
-    jal get_time  # jump to get_time and save position to ra
+    jal get_current_time   # jump to get_current_time  and save position to ra
     #empilha dnv
     sw a0, 24(a6)
     j retorno_interrup
@@ -432,7 +432,7 @@ tratador_interrupcoes:
     #desempilha
     lw a0, 24(a6)
     lw a1, 4(a6)#pego de volta os parametros da funcao
-    jal set_engine_torque  # jump set_engine_torque and save position to ra
+    jal set_engine  # jump set_engine and save position to ra
     #empilha dnv
     sw a0, 24(a6)
     j retorno_interrup
